@@ -3,42 +3,52 @@
 """
 @author : Romain Graux, Martin Draguet, Arno Gueurts
 @date : 2021 Mar 24, 15:13:43
-@last modified : 2021 Mar 25, 14:52:00
+@last modified : 2021 Mar 29, 10:23:38
 """
+
+import random
+import numpy as np
+
+SLOW_LANE = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14)
+FAST_LANE = (0, 1, 2, 10, 11, 12, 13, 14)
+
 
 class Trap:
     @staticmethod
-    def ordinary(position):
-        raise NotImplementedError()
+    def ordinary(position, on_fast_lane):
+        return position, False
 
     @staticmethod
-    def restart(position):
-        raise NotImplementedError()
+    def restart(position, on_fast_lane):
+        return 0, False
 
     @staticmethod
-    def penalty(position):
-        raise NotImplementedError()
+    def penalty(position, on_fast_lane):
+        idx = FAST_LANE.index(position) if on_fast_lane else SLOW_LANE.index(position)
+        next_idx = max(0, idx - 3)
+        return FAST_LANE[next_idx] if on_fast_lane else SLOW_LANE[next_idx]
 
     @staticmethod
-    def prison(position):
-        raise NotImplementedError()
+    def prison(position, on_fast_lane):
+        return position, True
 
     @staticmethod
-    def gamble(position):
-        raise NotImplementedError()
+    def gamble(position, on_fast_lane):
+        return random.randint(0, 14), False
 
     @staticmethod
-    def next_position(idx, position):
+    def next_position(idx, position, on_fast_lane):
         """next_position.
 
-        :param idx: the indice of the trap 
-        :param position: the current position 
+        :param idx: the indice of the trap
+        :param position: the current position
+        :param on_fast_lane: if currently on the fast lane
 
         :return (next_position, freeze): the next position with trap activated and freeze indicating if the next turn is freezed
         """
         return (Trap.ordinary, Trap.restart, Trap.penalty, Trap.prison, Trap.gamble)[
             idx
-        ](position)
+        ](position, on_fast_lane)
 
 
 class Dice:
@@ -51,7 +61,9 @@ class Dice:
         """get_move.
         :return: the number of moves to do next
         """
-        raise NotImplementedError("Abstract method `get_move` of parent class `Dice` not implemented")
+        raise NotImplementedError(
+            "Abstract method `get_move` of parent class `Dice` not implemented"
+        )
 
 
 class SecurityDice(Dice):
@@ -61,11 +73,11 @@ class SecurityDice(Dice):
 
     N = 1
     ACTIVATE_TRAP = False
-    TRAP_PROBABILITY = 0.0
+    TRAP_PROBABILITY = None
 
-    # @classmethod
-    # def get_move(cls):
-    #     raise NotImplementedError()
+    @classmethod
+    def get_move(cls):
+        return random.randint(0, 1)
 
 
 class NormalDice(Dice):
@@ -79,7 +91,7 @@ class NormalDice(Dice):
 
     @classmethod
     def get_move(cls):
-        raise NotImplementedError()
+        return random.randint(0, 2)
 
 
 class RiskyDice(Dice):
@@ -93,30 +105,67 @@ class RiskyDice(Dice):
 
     @classmethod
     def get_move(cls):
-        raise NotImplementedError()
+        return random.randint(0, 3)
 
 
 class Game:
+    START, END = 0, 14
+
     def __init__(self, layout, circle):
         self._layout = layout
         self._circle = circle
         self._pos = 0
+        self._on_fast_lane = False
 
-    def _valid_position(self):
-        """_valid_position.
-        Valid the current position `self._pos` regarding to `self._circle`
+    def _validate_position(self, position):
+        """_validate_position.
+        Validate the current position `self._pos` regarding to `self._circle`
 
-        :return: None
+        :return validated_position: the validated position
         """
-        raise NotImplementedError()
+        validated_position = (
+            position % (Game.END + 1)
+            if self._circle
+            else np.clip(position, Game.START, Game.END)
+        )
+        return validated_position
 
-    def next_position(self, dice:Dice):
+    def next_position(self, position: int, dice: Dice):
         """next_position.
         Return the next position regarding to the arguement `dice`, the current position and the layout.
 
+        :param position: The current position
         :param dice: An instance of Dice
         """
-        raise NotImplementedError()
+        freeze = False
+
+        # if we are at the branching sqaure (third square), 50% probability to go on the slow lane and 50% probability to go on the fast lane
+        if position == 2:
+            self._on_fast_lane = random.choice([True, False])
+
+        # get the number of squares when throwing the dice
+        dx = dice.get_move()
+
+        # the next position is computed as usual if we are not at the branching square (third square)
+        # if we are at the branching square and `dx` > 0, `dx` is apply on the fast lane
+        next_pos = (
+            position + dx
+            if not (self._on_fast_lane and position == 2) or dx == 0
+            else 9 + dx
+        )
+        # > print(f"next pos :: {next_pos}")
+        next_pos = self._validate_position(next_pos)
+
+        # activate trap only if :
+        #   - the dice is either a risky or a normal dice
+        #   - the `next_pos` is not the start or the end square
+        if dice.ACTIVATE_TRAP and next_pos not in (Game.START, Game.END):
+            # activate the trap with the probability corresponding to the `dice`
+            if random.random() < dice.TRAP_PROBABILITY:
+                next_pos, freeze = Trap.next_position(self._layout[next_pos], next_pos)
+                next_pos = self._validate_position(next_pos)
+
+        return next_pos, freeze
 
 
 def markovDecision(layout, circle):
