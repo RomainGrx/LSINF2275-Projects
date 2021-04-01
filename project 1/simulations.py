@@ -47,7 +47,7 @@ def play(case, dice_result, layout, circle, dice):
         next_case = 14
     elif case == 8 and dice_result == 2 :       # jump from 9 to 14 exactly
         next_case = 14
-    elif case == 9 and dice_result == 1 :       # jump from 9 to 14 exactly
+    elif (case == 9 or case == 13) and dice_result == 1 :       # jump from 9 to 14 exactly
         next_case = 14
     elif case == 9 or case == 13 :              # circle cases for 9 & 13
         if circle: 
@@ -110,7 +110,7 @@ def simulations(layout, circle, N_SIMU, strategy):
     return cost
 
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-circle = False
+circle = True
 N_SIMU = 10000
 strategy = 'security_only'
 print(markovDecision(layout, circle))
