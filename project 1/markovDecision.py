@@ -3,7 +3,7 @@
 """
 @author : Romain Graux, Martin Draguet, Arno Gueurts
 @date : 2021 Mar 24, 15:13:43
-@last modified : 2021 Apr 01, 13:10:38
+@last modified : 2021 Apr 01, 13:12:06
 """
 
 import random
@@ -297,6 +297,7 @@ class MarkovDecisionProcess(Strategy):
         :param state: the state for which we want the next states
         :param action: the action chosen for moving (dice)
         """
+
         def trap_next_states(position):
             """trap_next_states.
             Return all the next states with their positions, if they are freeze and the probability having those particular next states when the trap is activated
@@ -304,10 +305,12 @@ class MarkovDecisionProcess(Strategy):
             :param position: the position for which we want the next states
             """
             trap = self._layout[position]
-            if trap != 4: # if not the trap 4, the next possible position is a single square
+            if (
+                trap != 4
+            ):  # if not the trap 4, the next possible position is a single square
                 next_position, freeze = Trap.next_position(trap, position)
                 return [(1.0, freeze, next_position)]
-            else: # else, the trap 4 have 15 next states with probability 1/15
+            else:  # else, the trap 4 have 15 next states with probability 1/15
                 p = 1 / SnakesAndLadders.N_STATE
                 return [(p, False, pos) for pos in range(SnakesAndLadders.N_STATE)]
 
@@ -319,41 +322,49 @@ class MarkovDecisionProcess(Strategy):
             """
             p = dice.p()
             next_states = []
-            for dx in range(dice.MAX_DX + 1): # We iterate over all possible moves
-                if position == 2: # If we are at the branching square (3), split in slow and fast lane with probability 0.5
+            for dx in range(dice.MAX_DX + 1):  # We iterate over all possible moves
+                if (
+                    position == 2
+                ):  # If we are at the branching square (3), split in slow and fast lane with probability 0.5
                     next_states += [
                         (0.5 * p, SLOW_LANE[position + dx]),
                         (0.5 * p, FAST_LANE[position + dx]),
                     ]
-                else: # Else it is just a single position with move `dx`
+                else:  # Else it is just a single position with move `dx`
                     next_pos = SnakesAndLadders._validate_position(
                         position + dx, self._circle
                     )
                     next_states.append((p, next_pos))
             return next_states
 
-        dice = self._env.ACTIONS[action] # Get the dice instance
+        dice = self._env.ACTIONS[action]  # Get the dice instance
 
         for dice_p, dice_state in dice_next_states(state, self._env.ACTIONS[action]):
-            yield (1 - dice.TRAP_PROBABILITY) * dice_p, False, dice_state # First, yield the next states not triggering the trap
+            yield (
+                1 - dice.TRAP_PROBABILITY
+            ) * dice_p, False, dice_state  # First, yield the next states not triggering the trap
             if dice.ACTIVATE_TRAP:
                 for trap_p, freeze, next_state in trap_next_states(dice_state):
-                    yield dice.TRAP_PROBABILITY * dice_p * trap_p, freeze, next_state # Then, yield the next states when the trap is triggered 
+                    yield dice.TRAP_PROBABILITY * dice_p * trap_p, freeze, next_state  # Then, yield the next states when the trap is triggered
 
     def compute(self, epochs=10000):
         for e in range(epochs):
-            Q = np.zeros_like(self.Q) # the new Q matrix we will compute
-            V = self.V(self.Q) # the current V vector with cost per state
+            Q = np.zeros_like(self.Q)  # the new Q matrix we will compute
+            V = self.V(self.Q)  # the current V vector with cost per state
             # Iterate over every state (k) on the board and every dice (a)
             for state in range(self._env.N_STATE - 1):
                 for action in range(self._env.N_ACTION):
                     Q[state, action] = 1.0
                     for p, freeze, next_state in self.next_states(state, action):
-                        Q[state, action] += p * (V[next_state] + int(freeze)) # we add the contribution of every next state (k')
+                        Q[state, action] += p * (
+                            V[next_state] + int(freeze)
+                        )  # we add the contribution of every next state (k')
 
-            if np.max(np.abs(self.V(self.Q) - self.V(Q))) < self._theta: # Break if the max difference of the previous Q with the new Q < theta
+            if (
+                np.max(np.abs(self.V(self.Q) - self.V(Q))) < self._theta
+            ):  # Break if the max difference of the previous Q with the new Q < theta
                 break
-            self.Q = Q.copy() # Replace the old Q matrix with the new computed one
+            self.Q = Q.copy()  # Replace the old Q matrix with the new computed one
 
         return self.V(Q)[:-1], self.policy(Q)[:-1]
 
