@@ -28,7 +28,9 @@ def trap(case, layout):
         next_case = case
         freeze = True
     elif layout[case] == 4 : # random teleportation
-        next_case == rd.randint(0, 14)
+        return rd.randint(0, 14), False
+    else : 
+        raise NotImplementedError()
     return next_case, freeze
 
 
@@ -110,8 +112,13 @@ def simulations(layout, circle, N_SIMU, strategy):
     return cost
 
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-circle = True
+for i in range(len(layout)) : 
+    add_trap = rd.randint(0, 2)
+    if add_trap == 1 : 
+        layout[i] = rd.randint(1, 4)
+
+circle = False
 N_SIMU = 10000
-strategy = 'security_only'
+strategy = 'optimal'
 print(markovDecision(layout, circle))
 print(simulations(layout, circle, N_SIMU, strategy))
