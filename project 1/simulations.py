@@ -111,14 +111,27 @@ def simulations(layout, circle, N_SIMU, strategy):
         cost[case] = cost_to_case
     return cost
 
+
+
+###   TESTING CODE   ###
+  ###  ARGUMENTS  ###
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+circle = False
+N_SIMU = 10000
+strategy = 'optimal'
+"""
+UNCOMMENT FOR RANDOM LAYOUT
 for i in range(len(layout)) : 
     add_trap = rd.randint(0, 2)
     if add_trap == 1 : 
         layout[i] = rd.randint(1, 4)
+"""
 
-circle = False
-N_SIMU = 10000
-strategy = 'optimal'
-print(markovDecision(layout, circle))
-print(simulations(layout, circle, N_SIMU, strategy))
+
+
+print('--------------------------------------')
+print('Layout           : ', layout)
+mdp_expec, dice_choice = markovDecision(layout, circle)
+print('MDP dice choice  : ', dice_choice)
+print('MDP expectation  : ', mdp_expec)
+print('Empirical values : ', simulations(layout, circle, N_SIMU, strategy))
