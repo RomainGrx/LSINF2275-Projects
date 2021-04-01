@@ -72,13 +72,18 @@ def play(case, dice_result, layout, circle, dice):
             if TrapActivated == 1 : 
                 next_case, freeze = trap(next_case, layout)
     return next_case, freeze
-        
-
-            
 
 def whatToDo(case, optimal_policy, strategy):
     if strategy == 'optimal':
         return optimal_policy[case]
+    elif strategy == 'security_only' : 
+        return 0
+    elif strategy == 'normal_only' : 
+        return 1
+    elif strategy == 'risky_only' : 
+        return 2
+    elif strategy == 'random' : 
+        return rd.randint(0, 2)
     # to fill in with all the other strategies
 
 
@@ -107,6 +112,6 @@ def simulations(layout, circle, N_SIMU, strategy):
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 circle = False
 N_SIMU = 10000
-strategy = 'optimal'
+strategy = 'security_only'
 print(markovDecision(layout, circle))
 print(simulations(layout, circle, N_SIMU, strategy))
