@@ -3,7 +3,7 @@
 """
 @author : Romain Graux, Martin Draguet, Arno Gueurts
 @date : 2021 Mar 24, 15:13:43
-@last modified : 2021 Apr 01, 11:14:50
+@last modified : 2021 Apr 01, 13:12:06
 """
 
 import random
@@ -14,45 +14,79 @@ FAST_LANE = (0, 1, 2, 10, 11, 12, 13, 14)
 
 
 class Trap:
+    """Trap.
+    Trap contains all traps with their behaviors.
+    """
+
     @staticmethod
-    def ordinary(position):
+    def ordinary(position: int):
+        """ordinary.
+        Stay on the same square without any trap
+
+        :param position: the position for which we want to activate the trap
+        """
         return position, False
 
     @staticmethod
-    def restart(position):
+    def restart(position: int):
+        """restart.
+        Immediately teleports the player back to the first square.
+
+        :param position: the position for which we want to activate the trap
+        """
         return 0, False
 
     @staticmethod
-    def penalty(position):
+    def penalty(position: int):
+        """penalty.
+        Immediately teleports the player 3 squares backwards.
+
+        :param position: the position for which we want to activate the trap
+        """
         on_fast_lane = 10 <= position <= 13
         idx = FAST_LANE.index(position) if on_fast_lane else SLOW_LANE.index(position)
         next_idx = max(0, idx - 3)
         return FAST_LANE[next_idx] if on_fast_lane else SLOW_LANE[next_idx], False
 
     @staticmethod
-    def prison(position):
+    def prison(position: int):
+        """prison.
+        The player must wait one turn before playing again.
+
+        :param position: the position for which we want to activate the trap
+        """
         return position, True
 
     @staticmethod
-    def gamble(position):
+    def gamble(position: int):
+        """gamble.
+        Randomly teleports the player anywhere on the board1, with equal, uniform, probability.
+
+        :param position: the position for which we want to activate the trap
+        """
         return random.randint(0, 14), False
 
     @staticmethod
-    def next_position(idx, position):
+    def next_position(trap_idx, position: int):
         """next_position.
+        Get the next position for `position` when we activate the trap number `trap_idx`
 
-        :param idx: the indice of the trap
-        :param position: the current position
+        :param trap_idx: the indice of the trap
+        :param position: the position for which we want to activate the trap
 
         :return (next_position, freeze): the next position with trap activated and freeze indicating if the next turn is freezed
         """
-        assert 0 <= idx <= 4, f"index {idx} not in the bounds [0,4]"
+        assert 0 <= trap_idx <= 4, f"index {trap_idx} not in the bounds [0,4]"
         return (Trap.ordinary, Trap.restart, Trap.penalty, Trap.prison, Trap.gamble)[
-            idx
+            trap_idx
         ](position)
 
 
 class Dice:
+    """Dice.
+    The global dice class.
+    """
+
     N = None
     ACTIVATE_TRAP = None
     TRAP_PROBABILITY = None
@@ -64,10 +98,13 @@ class Dice:
         :return: the number of moves to do next
         """
         return random.randint(cls.MIN_DX, cls.MAX_DX)
-    
+
     @classmethod
     def p(cls):
-        return 1/(cls.MAX_DX-cls.MIN_DX+1)
+        """p.
+        :return: the probability of throwing a particular move.
+        """
+        return 1 / (cls.MAX_DX - cls.MIN_DX + 1)
 
 
 class SecurityDice(Dice):
@@ -115,6 +152,12 @@ class SnakesAndLadders:
     def __init__(self, layout, circle):
         self._layout = layout
         self._circle = circle
+        self.reset()
+
+    def reset(self):
+        """reset.
+        Reset the game.
+        """
         self._pos = 0
         self._on_fast_lane = False
 
@@ -133,6 +176,11 @@ class SnakesAndLadders:
         return validated_position
 
     def seed(self, seed):
+        """seed.
+        Seed every random process.
+
+        :param seed: the number of the seed.
+        """
         random.seed(seed)
         np.random.seed(seed)
 
@@ -181,18 +229,19 @@ class SnakesAndLadders:
         info = dict(freeze=freeze, not_trapped_position=not_trapped_position)
         return next_pos, reward, done, info
 
-    def cost(self, state, action, next_state):
-        return 1
-
 
 class Strategy:
+    """Strategy.
+    The global strategy class.
+    """
+
     def __init__(self, layout, circle):
         self._layout = layout
         self._circle = circle
         self._env = SnakesAndLadders(layout, circle)
 
     def run(self):
-        raise NotImplementedError()
+        abstract
 
 
 class ChosenDices(Strategy):
@@ -201,6 +250,9 @@ class ChosenDices(Strategy):
         self._dices = dices
 
     def run(self):
+        """run.
+        Run the whole strategy.
+        """
         done = False
         turn = 0
         while not done:
@@ -215,71 +267,105 @@ class ChosenDices(Strategy):
 class MarkovDecisionProcess(Strategy):
     def __init__(self, layout, circle, theta=1e-9):
         super().__init__(layout, circle)
-        # self.Q = np.random.uniform(0, 10, size=(self._env.N_STATE, self._env.N_ACTION))
-        # self.Q[-1, :] = 0
-        self.Q = np.zeros((self._env.N_STATE, self._env.N_ACTION))
+        self.Q = np.random.uniform(
+            0, 10, size=(self._env.N_STATE, self._env.N_ACTION)
+        )  # The quality matrix containing the expected costs for (state, dice)
+        self.Q[-1, :] = 0  # Fix the last square as 0 cost
+        # self.Q = np.zeros((self._env.N_STATE, self._env.N_ACTION))
         self._theta = theta
 
     def policy(self, Q):
+        """policy.
+        Return the computed policy for the quality matrix `Q` (argmin of the dices)
+
+        :param Q: the quality matrix containing the exepected costs for (state, dice)
+        """
         return np.argmin(Q, axis=-1)
 
     def V(self, Q):
+        """V.
+        Return the min values per dice (i.e. the best dice for each state).
+
+        :param Q: the quality matrix containing the exepected costs for (state, dice)
+        """
         return np.min(Q, axis=-1)
 
     def next_states(self, state, action):
+        """next_states.
+        Return all the next states with their positions, if they are freeze and the probability having those particular next states
+
+        :param state: the state for which we want the next states
+        :param action: the action chosen for moving (dice)
+        """
+
         def trap_next_states(position):
+            """trap_next_states.
+            Return all the next states with their positions, if they are freeze and the probability having those particular next states when the trap is activated
+
+            :param position: the position for which we want the next states
+            """
             trap = self._layout[position]
-            if trap != 4:
+            if (
+                trap != 4
+            ):  # if not the trap 4, the next possible position is a single square
                 next_position, freeze = Trap.next_position(trap, position)
                 return [(1.0, freeze, next_position)]
-            else:
+            else:  # else, the trap 4 have 15 next states with probability 1/15
                 p = 1 / SnakesAndLadders.N_STATE
                 return [(p, False, pos) for pos in range(SnakesAndLadders.N_STATE)]
 
         def dice_next_states(position, dice):
+            """dice_next_states.
+            Return all the next states with their positions, if they are freeze and the probability having those particular next states for the particular `dice`
+
+            :param position: the position for which we want the next states
+            """
             p = dice.p()
             next_states = []
-            for dx in range(dice.MAX_DX+1):
-                if position == 2:
+            for dx in range(dice.MAX_DX + 1):  # We iterate over all possible moves
+                if (
+                    position == 2
+                ):  # If we are at the branching square (3), split in slow and fast lane with probability 0.5
                     next_states += [
                         (0.5 * p, SLOW_LANE[position + dx]),
                         (0.5 * p, FAST_LANE[position + dx]),
                     ]
-                else:
+                else:  # Else it is just a single position with move `dx`
                     next_pos = SnakesAndLadders._validate_position(
                         position + dx, self._circle
                     )
                     next_states.append((p, next_pos))
             return next_states
 
-        dice  = self._env.ACTIONS[action]
+        dice = self._env.ACTIONS[action]  # Get the dice instance
 
         for dice_p, dice_state in dice_next_states(state, self._env.ACTIONS[action]):
-            yield (1-dice.TRAP_PROBABILITY) * dice_p, False, dice_state
+            yield (
+                1 - dice.TRAP_PROBABILITY
+            ) * dice_p, False, dice_state  # First, yield the next states not triggering the trap
             if dice.ACTIVATE_TRAP:
                 for trap_p, freeze, next_state in trap_next_states(dice_state):
-                    yield dice.TRAP_PROBABILITY * dice_p * trap_p, freeze, next_state
+                    yield dice.TRAP_PROBABILITY * dice_p * trap_p, freeze, next_state  # Then, yield the next states when the trap is triggered
 
     def compute(self, epochs=10000):
         for e in range(epochs):
-            Q = np.zeros_like(self.Q)
-            V = self.V(self.Q)
-            # for state in range(self._env.N_STATE-1, -1, -1):
-            for state in range(self._env.N_STATE-1):
+            Q = np.zeros_like(self.Q)  # the new Q matrix we will compute
+            V = self.V(self.Q)  # the current V vector with cost per state
+            # Iterate over every state (k) on the board and every dice (a)
+            for state in range(self._env.N_STATE - 1):
                 for action in range(self._env.N_ACTION):
                     Q[state, action] = 1.0
                     for p, freeze, next_state in self.next_states(state, action):
-                        if next_state != self._env.END:
-                            Q[state, action] += p * (V[next_state] + int(freeze))
+                        Q[state, action] += p * (
+                            V[next_state] + int(freeze)
+                        )  # we add the contribution of every next state (k')
 
-            # print(np.max(np.abs(self.V(self.Q) - self.V(Q))), end="\r")
-            # print(self.V()- self.V(Q))
-            # if np.max(np.abs(self.V(self.Q) - self.V(Q))) < self._theta:
-            if np.sum((self.V(self.Q) - self.V(Q))**2) < self._theta:
+            if (
+                np.max(np.abs(self.V(self.Q) - self.V(Q))) < self._theta
+            ):  # Break if the max difference of the previous Q with the new Q < theta
                 break
-            self.Q = Q[:]
+            self.Q = Q.copy()  # Replace the old Q matrix with the new computed one
 
-        print()
         return self.V(Q)[:-1], self.policy(Q)[:-1]
 
 
@@ -302,21 +388,3 @@ def markovDecision(layout, circle):
     mdp = MarkovDecisionProcess(layout, circle)
     Expec, Dice = mdp.compute()
     return [Expec, Dice]
-
-
-if __name__ == "__main__":
-    import numpy as np
-
-    layout = np.full(15, 0, dtype=np.uint8)
-    circle = True
-
-    mdp = MarkovDecisionProcess(layout, circle)
-
-    # for d in range(0,1):
-    #     print("DICE :: ", d)
-    #     for position in range(15):
-    #         print("POSITION :: ", position)
-    #         for p, freeze, pos in mdp.next_states(position, d):
-    #             print(p, freeze, pos)
-
-    mdp.compute()
