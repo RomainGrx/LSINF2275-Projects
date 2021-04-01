@@ -3,7 +3,7 @@
 """
 @author : Romain Graux, Martin Draguet, Arno Gueurts
 @date : 2021 Mar 24, 15:13:43
-@last modified : 2021 Apr 01, 09:31:47
+@last modified : 2021 Apr 01, 11:14:50
 """
 
 import random
@@ -77,7 +77,7 @@ class SecurityDice(Dice):
 
     N = 0
     ACTIVATE_TRAP = False
-    TRAP_PROBABILITY = None
+    TRAP_PROBABILITY = 0.0
     MIN_DX, MAX_DX = 0, 1
 
 
@@ -213,18 +213,17 @@ class ChosenDices(Strategy):
 
 
 class MarkovDecisionProcess(Strategy):
-    def __init__(self, layout, circle, theta=1e-5):
+    def __init__(self, layout, circle, theta=1e-9):
         super().__init__(layout, circle)
-        self.Q = np.random.uniform(0, 10, size=(self._env.N_STATE, self._env.N_ACTION))
-        self.Q[-1, :] = 0
+        # self.Q = np.random.uniform(0, 10, size=(self._env.N_STATE, self._env.N_ACTION))
+        # self.Q[-1, :] = 0
+        self.Q = np.zeros((self._env.N_STATE, self._env.N_ACTION))
         self._theta = theta
 
-    def policy(self, Q=None):
-        Q = Q if Q is not None else self.Q
+    def policy(self, Q):
         return np.argmin(Q, axis=-1)
 
-    def V(self, Q=None):
-        Q = Q if Q is not None else self.Q
+    def V(self, Q):
         return np.min(Q, axis=-1)
 
     def next_states(self, state, action):
@@ -234,8 +233,8 @@ class MarkovDecisionProcess(Strategy):
                 next_position, freeze = Trap.next_position(trap, position)
                 return [(1.0, freeze, next_position)]
             else:
-                p = 1 / SnakesAndLadders.END
-                return [(p, False, pos) for pos in range(SnakesAndLadders.END)]
+                p = 1 / SnakesAndLadders.N_STATE
+                return [(p, False, pos) for pos in range(SnakesAndLadders.N_STATE)]
 
         def dice_next_states(position, dice):
             p = dice.p()
@@ -243,8 +242,8 @@ class MarkovDecisionProcess(Strategy):
             for dx in range(dice.MAX_DX+1):
                 if position == 2:
                     next_states += [
-                        (0.5 * p, SLOW_LANE[position] + dx),
-                        (0.5 * p, FAST_LANE[position] + dx),
+                        (0.5 * p, SLOW_LANE[position + dx]),
+                        (0.5 * p, FAST_LANE[position + dx]),
                     ]
                 else:
                     next_pos = SnakesAndLadders._validate_position(
@@ -253,25 +252,35 @@ class MarkovDecisionProcess(Strategy):
                     next_states.append((p, next_pos))
             return next_states
 
+        dice  = self._env.ACTIONS[action]
+
         for dice_p, dice_state in dice_next_states(state, self._env.ACTIONS[action]):
-            for trap_p, freeze, next_state in trap_next_states(dice_state):
-                yield dice_p * trap_p, freeze, next_state
+            yield (1-dice.TRAP_PROBABILITY) * dice_p, False, dice_state
+            if dice.ACTIVATE_TRAP:
+                for trap_p, freeze, next_state in trap_next_states(dice_state):
+                    yield dice.TRAP_PROBABILITY * dice_p * trap_p, freeze, next_state
 
-    def compute(self, epochs=100):
-        for _ in range(epochs):
+    def compute(self, epochs=10000):
+        for e in range(epochs):
             Q = np.zeros_like(self.Q)
-            previous_Q = self.Q.copy()
-            for state in range(self._env.N_STATE - 1):
+            V = self.V(self.Q)
+            # for state in range(self._env.N_STATE-1, -1, -1):
+            for state in range(self._env.N_STATE-1):
                 for action in range(self._env.N_ACTION):
-                    Q[state, action] += 1.0
+                    Q[state, action] = 1.0
                     for p, freeze, next_state in self.next_states(state, action):
-                        Q[state, action] += p * (self.V()[next_state] + int(freeze))
+                        if next_state != self._env.END:
+                            Q[state, action] += p * (V[next_state] + int(freeze))
 
-            self.Q = Q
-            if np.max(np.abs(self.V(Q) - self.V(previous_Q))) < self._theta:
+            # print(np.max(np.abs(self.V(self.Q) - self.V(Q))), end="\r")
+            # print(self.V()- self.V(Q))
+            # if np.max(np.abs(self.V(self.Q) - self.V(Q))) < self._theta:
+            if np.sum((self.V(self.Q) - self.V(Q))**2) < self._theta:
                 break
+            self.Q = Q[:]
 
-        return self.V(), self.policy()
+        print()
+        return self.V(Q)[:-1], self.policy(Q)[:-1]
 
 
 def markovDecision(layout, circle):
@@ -299,13 +308,15 @@ if __name__ == "__main__":
     import numpy as np
 
     layout = np.full(15, 0, dtype=np.uint8)
-    circle = False
+    circle = True
 
     mdp = MarkovDecisionProcess(layout, circle)
 
-    for d in range(3):
-        print("DICE :: ", d)
-        for position in range(15):
-            print("POSITION :: ", position)
-            for p, freeze, pos in mdp.next_states(position, d):
-                print(p, freeze, pos)
+    # for d in range(0,1):
+    #     print("DICE :: ", d)
+    #     for position in range(15):
+    #         print("POSITION :: ", position)
+    #         for p, freeze, pos in mdp.next_states(position, d):
+    #             print(p, freeze, pos)
+
+    mdp.compute()
