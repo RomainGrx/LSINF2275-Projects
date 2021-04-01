@@ -28,7 +28,9 @@ def trap(case, layout):
         next_case = case
         freeze = True
     elif layout[case] == 4 : # random teleportation
-        next_case == rd.randint(0, 14)
+        return rd.randint(0, 14), False
+    else : 
+        raise NotImplementedError()
     return next_case, freeze
 
 
@@ -47,7 +49,7 @@ def play(case, dice_result, layout, circle, dice):
         next_case = 14
     elif case == 8 and dice_result == 2 :       # jump from 9 to 14 exactly
         next_case = 14
-    elif case == 9 and dice_result == 1 :       # jump from 9 to 14 exactly
+    elif (case == 9 or case == 13) and dice_result == 1 :       # jump from 9 to 14 exactly
         next_case = 14
     elif case == 9 or case == 13 :              # circle cases for 9 & 13
         if circle: 
@@ -72,13 +74,18 @@ def play(case, dice_result, layout, circle, dice):
             if TrapActivated == 1 : 
                 next_case, freeze = trap(next_case, layout)
     return next_case, freeze
-        
-
-            
 
 def whatToDo(case, optimal_policy, strategy):
     if strategy == 'optimal':
         return optimal_policy[case]
+    elif strategy == 'security_only' : 
+        return 0
+    elif strategy == 'normal_only' : 
+        return 1
+    elif strategy == 'risky_only' : 
+        return 2
+    elif strategy == 'random' : 
+        return rd.randint(0, 2)
     # to fill in with all the other strategies
 
 
@@ -105,6 +112,11 @@ def simulations(layout, circle, N_SIMU, strategy):
     return cost
 
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+for i in range(len(layout)) : 
+    add_trap = rd.randint(0, 2)
+    if add_trap == 1 : 
+        layout[i] = rd.randint(1, 4)
+
 circle = False
 N_SIMU = 10000
 strategy = 'optimal'
