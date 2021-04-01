@@ -3,7 +3,7 @@
 """
 @author : Romain Graux, Martin Draguet, Arno Gueurts
 @date : 2021 Mar 24, 15:13:43
-@last modified : 2021 Mar 29, 20:04:01
+@last modified : 2021 Apr 01, 09:31:47
 """
 
 import random
@@ -64,18 +64,10 @@ class Dice:
         :return: the number of moves to do next
         """
         return random.randint(cls.MIN_DX, cls.MAX_DX)
-
+    
     @classmethod
-    def get_all_next_states(cls, state, trap):
-        dice_prob = 1 / (cls.MAX_DX - cls.MIN_DX)
-
-        all_states = [
-            (
-                dice_prob * (1 - cls.TRAP_PROBABILITY),
-                state,
-            ),  # dx = 0 and not XXX the trap
-            Trap.get_all_next_states(trap, state, p=dice_prob),
-        ]
+    def p(cls):
+        return 1/(cls.MAX_DX-cls.MIN_DX+1)
 
 
 class SecurityDice(Dice):
@@ -246,9 +238,9 @@ class MarkovDecisionProcess(Strategy):
                 return [(p, False, pos) for pos in range(SnakesAndLadders.END)]
 
         def dice_next_states(position, dice):
-            p = 1 / (dice.MAX_DX - dice.MIN_DX)
+            p = dice.p()
             next_states = []
-            for dx in range(dice.MAX_DX):
+            for dx in range(dice.MAX_DX+1):
                 if position == 2:
                     next_states += [
                         (0.5 * p, SLOW_LANE[position] + dx),
@@ -310,7 +302,10 @@ if __name__ == "__main__":
     circle = False
 
     mdp = MarkovDecisionProcess(layout, circle)
-    V, Policy = mdp.compute()
 
-    print(V)
-    print(Policy)
+    for d in range(3):
+        print("DICE :: ", d)
+        for position in range(15):
+            print("POSITION :: ", position)
+            for p, freeze, pos in mdp.next_states(position, d):
+                print(p, freeze, pos)
