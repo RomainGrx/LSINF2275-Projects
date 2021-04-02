@@ -1,8 +1,9 @@
+from simulations import simulations
+from markovDecision import markovDecision
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.axes as ax
-from simulations import simulations
-from markovDecision import markovDecision
+
 
 Square_nb=np.linspace(1,14,14)
 
@@ -75,11 +76,11 @@ plt.savefig('Figures/strategies_circle.eps', format='eps')
 
 ##### layout 1 - not circle - Theoretical vs Empirical #####
 theor=markovDecision(layout1,False)[0]
-emp1=simulations(layout1,False,'Markov Decision',100)
-emp2=simulations(layout1,False,'Markov Decision',1000)
-emp3=simulations(layout1,False,'Markov Decision',10000)
-emp4=simulations(layout1,False,'Markov Decision',100000)
-emp5=simulations(layout1,False,'Markov Decision',1000000)
+emp1=simulations(layout1,False,100,'Markov Decision')
+emp2=simulations(layout1,False,1000,'Markov Decision')
+emp3=simulations(layout1,False,10000,'Markov Decision')
+emp4=simulations(layout1,False,100000,'Markov Decision')
+emp5=simulations(layout1,False,1000000,'Markov Decision')
 
 
 fig=plt.figure()
@@ -111,14 +112,14 @@ plt.legend(('100 Simulations','1000 Simulations','10000 Simulations','100000 Sim
 plt.savefig('Figures/relative_error.eps', format='eps')
 
 ##### layout 1 - not circle - Strategies comparison #####
-emp6=simulations(layout1,False,'Markov Decision',10000)
-emp7=simulations(layout1,False,'Altered Optimality',10000)
-emp8=simulations(layout1,False,'Die1',10000)
-emp9=simulations(layout1,False,'Die2',10000)
-emp10=simulations(layout1,False,'Random',10000)
-emp11=simulations(layout1,False,'Regular Player',10000)
-emp12=simulations(layout1,False,'Offensive',10000)
-emp13=simulations(layout1,False,'Defensive',10000)
+emp6=simulations(layout1,False,10000,'Markov Decision')
+emp7=simulations(layout1,False,10000,'Altered Optimality')
+emp8=simulations(layout1,False,10000,'Die1')
+emp9=simulations(layout1,False,10000,'Die2')
+emp10=simulations(layout1,False,10000,'Random')
+emp11=simulations(layout1,False,10000,'Regular Player')
+emp12=simulations(layout1,False,10000,'Offensive')
+emp13=simulations(layout1,False,10000,'Defensive')
 
 fig=plt.figure()
 plt.plot(Square_nb,emp6,'#e41a1c',linewidth=0.7, marker='o')
