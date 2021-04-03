@@ -20,6 +20,7 @@ def result(dice):
     elif dice == 2 :                # Risky Dice
         return rd.randint(0, 3)
     else : 
+        print(dice)
         raise NotImplementedError()
 
 def trap(case, layout):
@@ -180,13 +181,12 @@ def simulations(layout, circle, N_SIMU, strategy):
 
 
 ###   TESTING CODE   ###
-  ###  ARGUMENTS  ###
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-circle = False
+circle = True
 N_SIMU = 10000
 strategy = 'optimal'
 """
-UNCOMMENT FOR RANDOM LAYOUT
+#UNCOMMENT FOR RANDOM LAYOUT
 for i in range(len(layout)) : 
     add_trap = rd.randint(0, 2)
     if add_trap == 1 : 

@@ -313,7 +313,38 @@ class MarkovDecisionProcess(Strategy):
             else:  # else, the trap 4 have 15 next states with probability 1/15
                 p = 1 / SnakesAndLadders.N_STATE
                 return [(p, False, pos) for pos in range(SnakesAndLadders.N_STATE)]
-
+        def get_next_case(case, dice_result, layout, circle):
+            if dice_result == 0 :                                   # No changes
+                next_case = case
+            elif case == 2 :                                        # Junction FAST and SLOW lane 
+                FastLane = rd.randint(0, 1)
+                if FastLane == 1 : 
+                    next_case = 9 + dice_result
+                else : 
+                    next_case = case + dice_result
+            elif case == 7 and dice_result == 3 :                   # Jump from 9 to 14 during turn
+                next_case = 14
+            elif case == 8 and dice_result == 2 :                   # Jump from 9 to 14 during turn
+                next_case = 14
+            elif (case == 9 or case == 13) and dice_result == 1 :   # Jump from 9 to 14 during turn  
+                next_case = 14
+            elif case == 9 or case == 13 :                          # Circle cases for 9 & 13
+                if circle: 
+                    if dice_result == 2 : 
+                        next_case = 0 
+                    elif dice_result == 3 : 
+                        next_case = 1
+                else : 
+                    next_case = 14
+            elif (case == 8 or case == 12) and dice_result == 3 :   # Circle cases for 8 & 12
+                if circle : 
+                    next_case = 0
+                else : 
+                    next_case = 14
+            else :                                                  # General case
+                next_case = case + dice_result
+            return next_case
+        
         def dice_next_states(position, dice):
             """dice_next_states.
             Return all the next states with their positions, if they are freeze and the probability having those particular next states for the particular `dice`
@@ -331,9 +362,10 @@ class MarkovDecisionProcess(Strategy):
                         (0.5 * p, FAST_LANE[position + dx]),
                     ]
                 else:  # Else it is just a single position with move `dx`
-                    next_pos = SnakesAndLadders._validate_position(
-                        position + dx, self._circle
-                    )
+                    #next_pos = SnakesAndLadders._validate_position(
+                    #    position + dx, self._circle
+                    #)
+                    next_pos = get_next_case(position, dx, self._layout, self._circle)
                     next_states.append((p, next_pos))
             return next_states
 
@@ -388,3 +420,7 @@ def markovDecision(layout, circle):
     mdp = MarkovDecisionProcess(layout, circle)
     Expec, Dice = mdp.compute()
     return [Expec, Dice]
+
+layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+circle = False
+print(markovDecision(layout, circle))
