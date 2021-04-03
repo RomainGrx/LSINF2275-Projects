@@ -2,6 +2,7 @@ import random as rd
 from markovDecision import markovDecision
 import time
 import numpy as np
+import re
 
 def result(dice):
     """result.
@@ -132,6 +133,15 @@ def whatToDo(case, optimal_policy, strategy):
         return 2
     elif strategy == 'random' : 
         return rd.randint(0, 2)
+    elif strategy.startswith('optimal_with_random_') and strategy[-1].isdigit():
+        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
+        if rd.random() >= random_percentile : 
+            return optimal_policy[case]
+        else:
+            return rd.randint(0, 2)
+
+        
+
     # to fill in with all the other strategies
 
 
@@ -184,7 +194,7 @@ def simulations(layout, circle, N_SIMU, strategy):
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 circle = True
 N_SIMU = 10000
-strategy = 'optimal'
+strategy = 'optimal_with_random_10'
 """
 #UNCOMMENT FOR RANDOM LAYOUT
 for i in range(len(layout)) : 
