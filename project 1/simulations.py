@@ -139,6 +139,24 @@ def whatToDo(case, optimal_policy, strategy):
             return optimal_policy[case]
         else:
             return rd.randint(0, 2)
+    elif strategy.startswith('optimal_with_security_') and strategy[-1].isdigit():
+        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
+        if rd.random() >= random_percentile : 
+            return optimal_policy[case]
+        else:
+            return 0
+    elif strategy.startswith('optimal_with_normal_') and strategy[-1].isdigit():
+        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
+        if rd.random() >= random_percentile : 
+            return optimal_policy[case]
+        else:
+            return 1
+    elif strategy.startswith('optimal_with_risky_') and strategy[-1].isdigit():
+        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
+        if rd.random() >= random_percentile : 
+            return optimal_policy[case]
+        else:
+            return 2
 
         
 
@@ -194,7 +212,7 @@ def simulations(layout, circle, N_SIMU, strategy):
 layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 circle = True
 N_SIMU = 10000
-strategy = 'optimal_with_random_10'
+strategy = 'optimal_with_risky_10'
 """
 #UNCOMMENT FOR RANDOM LAYOUT
 for i in range(len(layout)) : 
