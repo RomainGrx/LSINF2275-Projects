@@ -3,7 +3,7 @@
 """
 @author : Romain Graux, Martin Draguet, Arno Gueurts
 @date : 2021 Mar 24, 15:13:43
-@last modified : 2021 Apr 05, 11:37:54
+@last modified : 2021 Apr 05, 11:51:18
 """
 
 import random
@@ -225,7 +225,7 @@ class SnakesAndLadders:
 
         self._pos = next_pos
         done = self._pos == SnakesAndLadders.END
-        reward = 0.0
+        reward = 1.0 if done else 0.0
         info = dict(freeze=freeze, not_trapped_position=not_trapped_position)
         return next_pos, reward, done, info
 
