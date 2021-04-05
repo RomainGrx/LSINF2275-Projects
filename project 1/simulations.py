@@ -1,8 +1,18 @@
-import random as rd
-from markovDecision import markovDecision
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""
+@author : Romain Graux, Martin Draguet, Arno Gueurts
+@date : 2021 Mar 29, 11:12:37
+@last modified : 2021 Apr 05, 11:32:49
+"""
+
+import re
 import time
 import numpy as np
-import re
+import random as rd
+
+from markovDecision import markovDecision
+
 
 def result(dice):
     """result.
@@ -11,44 +21,45 @@ def result(dice):
                     0 : security dice
                     1 : normal dice
                     2 : risky dice
-                
+
     :return: integer, result of the thrown dice
     """
-    if dice == 0:                   # Security Dice 
+    if dice == 0:  # Security Dice
         return rd.randint(0, 1)
-    elif dice == 1 :                # Normal Dice
+    elif dice == 1:  # Normal Dice
         return rd.randint(0, 2)
-    elif dice == 2 :                # Risky Dice
+    elif dice == 2:  # Risky Dice
         return rd.randint(0, 3)
-    else : 
+    else:
         print(dice)
         raise NotImplementedError()
+
 
 def trap(case, layout):
     """trap.
     Returns the case the player goes to after activating a trap
 
-    :param case:    integer refering to the case the player is on 
+    :param case:    integer refering to the case the player is on
     :param layout:  see simulations specification
 
     :return: integer refering to the case the player goes to after the trap has been activated
     """
     freeze = False
-    if layout[case] == 1 :              # Restart Trap
+    if layout[case] == 1:  # Restart Trap
         next_case = 0
-    elif layout[case] == 2 :            # Penalty Trap
-        if case < 3 or case == 10 : 
+    elif layout[case] == 2:  # Penalty Trap
+        if case < 3 or case == 10:
             next_case = 0
-        elif case == 11 or case == 12 : 
+        elif case == 11 or case == 12:
             next_case = case - 10
-        else : 
+        else:
             next_case = case - 3
-    elif layout[case] == 3 :            # Prison Trap
+    elif layout[case] == 3:  # Prison Trap
         next_case = case
         freeze = True
-    elif layout[case] == 4 :            # Gamble Trap
+    elif layout[case] == 4:  # Gamble Trap
         return rd.randint(0, 14), False
-    else : 
+    else:
         raise NotImplementedError()
     return next_case, freeze
 
@@ -68,45 +79,48 @@ def play(case, dice_result, layout, circle, dice):
     """
     freeze = False
     ###   FIND THE NEXT CASE BEFORE TRAPS   ###
-    if dice_result == 0 :                                   # No changes
+    if dice_result == 0:  # No changes
         next_case = case
-    elif case == 2 :                                        # Junction FAST and SLOW lane 
+    elif case == 2:  # Junction FAST and SLOW lane
         FastLane = rd.randint(0, 1)
-        if FastLane == 1 : 
+        if FastLane == 1:
             next_case = 9 + dice_result
-        else : 
+        else:
             next_case = case + dice_result
-    elif case == 7 and dice_result == 3 :                   # Jump from 9 to 14 during turn
+    elif case == 7 and dice_result == 3:  # Jump from 9 to 14 during turn
         next_case = 14
-    elif case == 8 and dice_result == 2 :                   # Jump from 9 to 14 during turn
+    elif case == 8 and dice_result == 2:  # Jump from 9 to 14 during turn
         next_case = 14
-    elif (case == 9 or case == 13) and dice_result == 1 :   # Jump from 9 to 14 during turn  
+    elif (
+        case == 9 or case == 13
+    ) and dice_result == 1:  # Jump from 9 to 14 during turn
         next_case = 14
-    elif case == 9 or case == 13 :                          # Circle cases for 9 & 13
-        if circle: 
-            if dice_result == 2 : 
-                next_case = 0 
-            elif dice_result == 3 : 
+    elif case == 9 or case == 13:  # Circle cases for 9 & 13
+        if circle:
+            if dice_result == 2:
+                next_case = 0
+            elif dice_result == 3:
                 next_case = 1
-        else : 
+        else:
             next_case = 14
-    elif (case == 8 or case == 12) and dice_result == 3 :   # Circle cases for 8 & 12
-        if circle : 
+    elif (case == 8 or case == 12) and dice_result == 3:  # Circle cases for 8 & 12
+        if circle:
             next_case = 0
-        else : 
+        else:
             next_case = 14
-    else :                                                  # General case
+    else:  # General case
         next_case = case + dice_result
 
     ###   TAKING TRAPS INTO ACCOUNT   ###
-    if layout[next_case] != 0 :                                 # There is a Trap on the case the player went on 
-        if dice == 2 :                                          # Risky Dice -> all traps are activated
+    if layout[next_case] != 0:  # There is a Trap on the case the player went on
+        if dice == 2:  # Risky Dice -> all traps are activated
             next_case, freeze = trap(next_case, layout)
-        elif dice == 1 :                                        # Normal Dice -> traps are activated half of the time
+        elif dice == 1:  # Normal Dice -> traps are activated half of the time
             TrapActivated = rd.randint(0, 1)
-            if TrapActivated == 1 : 
+            if TrapActivated == 1:
                 next_case, freeze = trap(next_case, layout)
     return next_case, freeze
+
 
 def whatToDo(case, optimal_policy, strategy):
     """whatToDo.
@@ -119,46 +133,44 @@ def whatToDo(case, optimal_policy, strategy):
                     'security_only'     the choice of the dice will always be the security dice
                     'normal_only'       the choice of the dice will always be the normal dice
                     'risky_only'        the choice of the dice will always be the risky dice
-                    ... (to be completed)     
+                    ... (to be completed)
 
-    :return: integer representing the number of the dice to be thrown    
+    :return: integer representing the number of the dice to be thrown
     """
-    if strategy == 'optimal':
+    if strategy == "optimal":
         return optimal_policy[case]
-    elif strategy == 'security_only' : 
+    elif strategy == "security_only":
         return 0
-    elif strategy == 'normal_only' : 
+    elif strategy == "normal_only":
         return 1
-    elif strategy == 'risky_only' : 
+    elif strategy == "risky_only":
         return 2
-    elif strategy == 'random' : 
+    elif strategy == "random":
         return rd.randint(0, 2)
-    elif strategy.startswith('optimal_with_random_') and strategy[-1].isdigit():
-        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
-        if rd.random() >= random_percentile : 
+    elif strategy.startswith("optimal_with_random_") and strategy[-1].isdigit():
+        random_percentile = int(re.search(r"\d+", strategy).group()) / 100.0
+        if rd.random() >= random_percentile:
             return optimal_policy[case]
         else:
             return rd.randint(0, 2)
-    elif strategy.startswith('optimal_with_security_') and strategy[-1].isdigit():
-        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
-        if rd.random() >= random_percentile : 
+    elif strategy.startswith("optimal_with_security_") and strategy[-1].isdigit():
+        random_percentile = int(re.search(r"\d+", strategy).group()) / 100.0
+        if rd.random() >= random_percentile:
             return optimal_policy[case]
         else:
             return 0
-    elif strategy.startswith('optimal_with_normal_') and strategy[-1].isdigit():
-        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
-        if rd.random() >= random_percentile : 
+    elif strategy.startswith("optimal_with_normal_") and strategy[-1].isdigit():
+        random_percentile = int(re.search(r"\d+", strategy).group()) / 100.0
+        if rd.random() >= random_percentile:
             return optimal_policy[case]
         else:
             return 1
-    elif strategy.startswith('optimal_with_risky_') and strategy[-1].isdigit():
-        random_percentile = int(re.search(r'\d+', strategy).group())/100.0
-        if rd.random() >= random_percentile : 
+    elif strategy.startswith("optimal_with_risky_") and strategy[-1].isdigit():
+        random_percentile = int(re.search(r"\d+", strategy).group()) / 100.0
+        if rd.random() >= random_percentile:
             return optimal_policy[case]
         else:
             return 2
-
-        
 
     # to fill in with all the other strategies
 
@@ -185,34 +197,39 @@ def simulations(layout, circle, N_SIMU, strategy):
     :return cost: vector containing the cost from each case to the destination, computed as the mean of all simulations run
 
     """
-    # PRELIMINARIES 
-    optimal_dice_to_throw = markovDecision(layout, circle)[1]       # Computing optimal policy
-    cost = [0]*14                                                   # Init the cost vector
-    for case in range(len(cost)):                                   # Iterate on all cases
-        cost_to_case = 0                                            
-        for i in range(N_SIMU):                                     # Run the process N_SIMU times
+    # PRELIMINARIES
+    optimal_dice_to_throw = markovDecision(layout, circle)[
+        1
+    ]  # Computing optimal policy
+    cost = [0] * 14  # Init the cost vector
+    for case in range(len(cost)):  # Iterate on all cases
+        cost_to_case = 0
+        for i in range(N_SIMU):  # Run the process N_SIMU times
             this_case = case
             cost_count = 0.0
-            while(this_case != 14) :                                                                # The process ends when the destination square is reached
-                dice_to_throw = whatToDo(this_case, optimal_dice_to_throw, strategy)                
+            while (
+                this_case != 14
+            ):  # The process ends when the destination square is reached
+                dice_to_throw = whatToDo(this_case, optimal_dice_to_throw, strategy)
                 dice_result = result(dice_to_throw)
-                next_case, freeze = play(this_case, dice_result, layout, circle, dice_to_throw)
-                if freeze :                                                                         # Add extra turn if freeze
+                next_case, freeze = play(
+                    this_case, dice_result, layout, circle, dice_to_throw
+                )
+                if freeze:  # Add extra turn if freeze
                     cost_count += 1.0
-                cost_count += 1.0   
+                cost_count += 1.0
                 this_case = next_case
-            cost_to_case += cost_count                              # Add cost from one simulation to total
-        cost_to_case = cost_to_case/N_SIMU                          # Compute mean of all simulations run
+            cost_to_case += cost_count  # Add cost from one simulation to total
+        cost_to_case = cost_to_case / N_SIMU  # Compute mean of all simulations run
         cost[case] = cost_to_case
     return cost
 
 
-
 ###   TESTING CODE   ###
-layout=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+layout = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 circle = True
 N_SIMU = 10000
-strategy = 'optimal_with_risky_10'
+strategy = "optimal_with_risky_10"
 """
 #UNCOMMENT FOR RANDOM LAYOUT
 for i in range(len(layout)) : 
@@ -222,10 +239,9 @@ for i in range(len(layout)) :
 """
 
 
-
-print('--------------------------------------')
-print('Layout           : ', layout)
+print("--------------------------------------")
+print("Layout           : ", layout)
 mdp_expec, dice_choice = markovDecision(layout, circle)
-print('MDP dice choice  : ', dice_choice)
-print('MDP expectation  : ', mdp_expec)
-print('Empirical values : ', simulations(layout, circle, N_SIMU, strategy))
+print("MDP dice choice  : ", dice_choice)
+print("MDP expectation  : ", mdp_expec)
+print("Empirical values : ", simulations(layout, circle, N_SIMU, strategy))
